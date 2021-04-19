@@ -18,7 +18,7 @@ exports.handler = async function getUpgradeEligible(req, res, next) {
 
   const response = await upgradesService.getUpgradeEligible(req, params);
   let output = "";
-  if (response.ok == false) {
+  if (response.ok == false && response.error.status == 400) {
     output = {
       code: response.error.status,
       status: response.error.name,
@@ -28,7 +28,18 @@ exports.handler = async function getUpgradeEligible(req, res, next) {
     res.status(output.code);
     res.json(output);
     return next(response.error);
-  } else {
+  } else if (response.ok == false){
+    output = {
+      code: response.error.response.status,
+      status: response.error.response.statusText,
+      message: response.error.response.data.error_description,
+    }
+    getUpgradeEligibleError.inc();
+    res.status(output.code);
+    res.json(output);
+    return next(response.error);
+  }
+  else {
     const eligibilityCheck = {
       productOfferingQualificationDate: response.data.result.upgradeDate,
       qualificationResult: response.data.result.upgradeEligible,
